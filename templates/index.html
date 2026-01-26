@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KIS API Tester</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #000;
+            color: #90EE90;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #00FF00;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #00FF00;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin-bottom: 30px;
+            border: 1px solid #333;
+            padding: 15px;
+            background-color: #0a0a0a;
+        }
+        .section h2 {
+            color: #00FF00;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .pill {
+            background: #003300;
+            color: #00FF00;
+            border: 1px solid #006400;
+            border-radius: 999px;
+            padding: 2px 10px;
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: inline-block;
+            width: 120px;
+            color: #90EE90;
+        }
+        input, select, button {
+            font-family: 'Courier New', monospace;
+            background-color: #1a1a1a;
+            color: #90EE90;
+            border: 1px solid #333;
+            padding: 8px;
+            font-size: 14px;
+        }
+        input[type="text"], input[type="number"], select {
+            width: 200px;
+        }
+        button {
+            background-color: #006400;
+            color: #00FF00;
+            border: 1px solid #00FF00;
+            padding: 8px 20px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #008000;
+        }
+        .mode-selector {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+        }
+        .mode-selector label {
+            width: auto;
+            margin-right: 20px;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            white-space: pre-wrap;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .result.success {
+            border-color: #00FF00;
+        }
+        .result.error {
+            border-color: #FF0000;
+            color: #FF6B6B;
+        }
+        .loading {
+            color: #FFA500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>KIS Open Trading API Tester</h1>
+        
+        <div class="mode-selector">
+            <label>Mode:</label>
+            <input type="radio" name="globalMode" value="paper" id="modePaper" checked>
+            <label for="modePaper" style="width: auto;">Paper</label>
+            <input type="radio" name="globalMode" value="prod" id="modeProd">
+            <label for="modeProd" style="width: auto;">Prod</label>
+        </div>
+
+        <!-- Token Section -->
+        <div class="section">
+            <h2>Token Management</h2>
+            <div class="form-group">
+                <button onclick="issueToken()">Issue Token</button>
+                <button onclick="revokeToken()">Revoke Token</button>
+                <input type="text" id="tokenInput" placeholder="Token to revoke" style="width: 300px;">
+            </div>
+            <div id="tokenResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Price Section -->
+        <div class="section">
+            <h2>Price Query</h2>
+            <div class="form-group">
+                <label>Symbol:</label>
+                <input type="text" id="priceSymbol" placeholder="005930" value="005930">
+                <label style="width: auto; margin-left: 20px;">Market:</label>
+                <select id="priceMarket">
+                    <option value="J">J (KRX)</option>
+                    <option value="NX">NX (Nextrade)</option>
+                    <option value="UN">UN (Unified)</option>
+                </select>
+                <button onclick="fetchPrice()">Fetch Price</button>
+            </div>
+            <div id="priceResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Order Section -->
+        <div class="section">
+            <h2>Order</h2>
+            <div class="form-group">
+                <label>Side:</label>
+                <select id="orderSide">
+                    <option value="buy">Buy</option>
+                    <option value="sell">Sell</option>
+                </select>
+                <label style="width: auto; margin-left: 20px;">Symbol:</label>
+                <input type="text" id="orderSymbol" placeholder="005930" value="005930">
+                <label style="width: auto; margin-left: 20px;">Qty:</label>
+                <input type="number" id="orderQty" placeholder="10" value="1">
+            </div>
+            <div class="form-group">
+                <label>Order Type:</label>
+                <select id="orderType">
+                    <option value="00">00 (Limit)</option>
+                    <option value="01">01 (Market)</option>
+                </select>
+                <label style="width: auto; margin-left: 20px;">Price:</label>
+                <input type="number" id="orderPrice" placeholder="70000" value="0">
+                <button onclick="placeOrder()">Place Order</button>
+            </div>
+            <div id="orderResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Balance Section -->
+        <div class="section">
+            <h2>Balance / P&L</h2>
+            <div class="form-group">
+                <button onclick="fetchBalance()">Fetch Balance</button>
+            </div>
+            <div id="balanceResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Quant Recommendation -->
+        <div class="section">
+            <h2>Quant Recommend (모멘텀 순위)</h2>
+            <div class="form-group">
+                <label style="width:auto;">Symbols (comma):</label>
+                <input type="text" id="recSymbols" style="width:400px;" value="005930,000660,035420,005380,068270">
+                <label style="width:auto; margin-left: 20px;">Market:</label>
+                <select id="recMarket">
+                    <option value="J">J (KRX)</option>
+                    <option value="NX">NX (Nextrade)</option>
+                    <option value="UN">UN (Unified)</option>
+                </select>
+                <button onclick="fetchRecommend()">Run</button>
+            </div>
+            <div id="recResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Portfolio Builder -->
+        <div class="section">
+            <h2>Portfolio (모멘텀 상위 N 균등비중) <span class="pill">auto weight</span></h2>
+            <div class="form-group">
+                <label style="width:auto;">Universe:</label>
+                <span style="color:#90EE90;">시스템에서 자동 로드(전체 KRX, 제한 개수만 사용)</span>
+            </div>
+            <div class="form-group">
+                <label style="width:auto;">Top N:</label>
+                <input type="number" id="portTopN" value="5" style="width:80px;">
+                <label style="width:auto; margin-left: 20px;">Market:</label>
+                <select id="portMarket">
+                    <option value="J">J (KRX)</option>
+                    <option value="NX">NX (Nextrade)</option>
+                    <option value="UN">UN (Unified)</option>
+                </select>
+                <label style="width:auto; margin-left: 20px;">Universe size:</label>
+                <input type="number" id="portUniLimit" value="200" style="width:80px;">
+                <button onclick="buildPortfolio()">Build</button>
+            </div>
+            <div id="portResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentToken = null;
+
+        function getMode() {
+            return document.querySelector('input[name="globalMode"]:checked').value;
+        }
+
+        function renderResult(elementId, summaryObj, rawObj, isError = false) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = 'result ' + (isError ? 'error' : 'success');
+            const parts = [];
+            if (summaryObj) {
+                if (summaryObj.summary && Object.keys(summaryObj.summary).length > 0) {
+                    parts.push('Summary:');
+                    for (const [k, v] of Object.entries(summaryObj.summary)) {
+                        parts.push(`  ${k}: ${v}`);
+                    }
+                    parts.push('');
+                }
+                if (summaryObj.table) {
+                    parts.push('Holdings:');
+                    parts.push(summaryObj.table);
+                    parts.push('');
+                }
+            }
+            parts.push('Raw:');
+            parts.push(JSON.stringify(rawObj, null, 2));
+            element.textContent = parts.join('\n');
+        }
+
+        function showLoading(elementId) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = 'result loading';
+            element.textContent = 'Loading...';
+        }
+
+        function formatPriceSummary(data) {
+            const out = data?.data?.output || {};
+            return {
+                summary: {
+                    price: out.stck_prpr,
+                    change: out.prdy_vrss,
+                    changeRate: out.prdy_ctrt,
+                    open: out.stck_oprc,
+                    high: out.stck_hgpr,
+                    low: out.stck_lwpr,
+                },
+            };
+        }
+
+        function formatOrderSummary(data) {
+            const out = data?.data?.output || {};
+            return {
+                summary: {
+                    orderNo: out.ODNO,
+                    time: out.ORD_TMD,
+                    code: out.KRX_FWDG_ORD_ORGNO,
+                    status: data?.data?.rt_cd || data?.rt_cd,
+                },
+            };
+        }
+
+        function formatBalanceSummary(data) {
+            const summary = data?.summary || {};
+            const holdings = data?.data?.output1;
+            let table = '';
+            if (Array.isArray(holdings)) {
+                const top = holdings.slice(0, 5);
+                const rows = top.map((h) => ({
+                    pdno: h.pdno || '',
+                    name: (h.prdt_name || '').slice(0, 12),
+                    qty: h.hldg_qty || '',
+                    avg: h.pchs_avg_pric || '',
+                    plrt: h.evlu_pfls_rt || '',
+                }));
+                const header = ['PDNO', 'NAME', 'QTY', 'AVG', 'P/L%'];
+                const widths = [6, 14, 8, 12, 8];
+                const pad = (val, width) => (val + '').padEnd(width, ' ');
+                const line = (vals) => vals.map((v, i) => pad(v, widths[i])).join(' ');
+                const lines = [line(header), line(widths.map((w) => '-'.repeat(w)))];
+                rows.forEach((r) => lines.push(line([r.pdno, r.name, r.qty, r.avg, r.plrt])));
+                table = lines.join('\n');
+            }
+            return { summary, table };
+        }
+
+        function formatRecommendSummary(data) {
+            const summary = {};
+            const list = data?.summary || [];
+            if (list.length) {
+                const header = ['SYM', 'PRICE', 'CHG%'];
+                const widths = [8, 10, 8];
+                const pad = (val, width) => (val + '').padEnd(width, ' ');
+                const line = (vals) => vals.map((v, i) => pad(v ?? '', widths[i])).join(' ');
+                const lines = [line(header), line(widths.map((w) => '-'.repeat(w)))];
+                list.forEach((r) => {
+                    lines.push(line([r.symbol, r.price, r.change_rate]));
+                });
+                summary.table = lines.join('\n');
+            }
+            return summary;
+        }
+
+        function formatPortfolioSummary(data) {
+            const summary = {};
+            const list = data?.summary || [];
+            if (list.length) {
+                const header = ['SYM', 'PRICE', 'CHG%', 'WEIGHT'];
+                const widths = [8, 10, 8, 8];
+                const pad = (val, width) => (val + '').padEnd(width, ' ');
+                const line = (vals) => vals.map((v, i) => pad(v ?? '', widths[i])).join(' ');
+                const lines = [line(header), line(widths.map((w) => '-'.repeat(w)))];
+                list.forEach((r) => {
+                    lines.push(line([r.symbol, r.price, r.change_rate, r.weight]));
+                });
+                summary.table = lines.join('\n');
+            }
+            return summary;
+        }
+
+        async function issueToken() {
+            const mode = getMode();
+            showLoading('tokenResult');
+
+            try {
+                const response = await fetch('/api/token/issue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode })
+                });
+                const data = await response.json();
+
+                if (data.success && data.token) {
+                    currentToken = data.token; // raw token kept in memory only
+                }
+                renderResult('tokenResult', { summary: { expires_in: data.expires_in } }, data, !data.success);
+            } catch (error) {
+                renderResult('tokenResult', null, { success: false, error: error.message }, true);
+            }
+        }
+
+        async function revokeToken() {
+            const mode = getMode();
+            const token = document.getElementById('tokenInput').value || currentToken;
+            
+            if (!token) {
+                showResult('tokenResult', { success: false, error: 'Token is required' }, true);
+                return;
+            }
+            
+            showLoading('tokenResult');
+            
+            try {
+                const response = await fetch('/api/token/revoke', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode, token })
+                });
+                const data = await response.json();
+                showResult('tokenResult', data, !data.success);
+            } catch (error) {
+                showResult('tokenResult', { success: false, error: error.message }, true);
+            }
+        }
+
+        async function fetchPrice() {
+            const mode = getMode();
+            const symbol = document.getElementById('priceSymbol').value;
+            const market = document.getElementById('priceMarket').value;
+            
+            if (!symbol) {
+                showResult('priceResult', { success: false, error: 'Symbol is required' }, true);
+                return;
+            }
+
+            showLoading('priceResult');
+
+            try {
+                const tokenQuery = currentToken ? `&token=${encodeURIComponent(currentToken)}` : '';
+                const url = `/api/price?symbol=${symbol}&market=${market}&mode=${mode}${tokenQuery}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                renderResult('priceResult', formatPriceSummary(data), data, !data.success);
+            } catch (error) {
+                renderResult('priceResult', null, { success: false, error: error.message }, true);
+            }
+        }
+
+        async function placeOrder() {
+            const mode = getMode();
+            const side = document.getElementById('orderSide').value;
+            const symbol = document.getElementById('orderSymbol').value;
+            const qty = parseInt(document.getElementById('orderQty').value);
+            const price = parseInt(document.getElementById('orderPrice').value);
+            const orderType = document.getElementById('orderType').value;
+            
+            if (!symbol || !qty) {
+                showResult('orderResult', { success: false, error: 'Symbol and Qty are required' }, true);
+                return;
+            }
+            
+            showLoading('orderResult');
+            
+            try {
+                const response = await fetch('/api/order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        mode,
+                        side,
+                        symbol,
+                        qty,
+                        price,
+                        order_type: orderType,
+                        token: currentToken
+                    })
+                });
+                const data = await response.json();
+                renderResult('orderResult', formatOrderSummary(data), data, !data.success);
+            } catch (error) {
+                renderResult('orderResult', null, { success: false, error: error.message }, true);
+            }
+        }
+
+        async function fetchBalance() {
+            const mode = getMode();
+            showLoading('balanceResult');
+            try {
+                const tokenQuery = currentToken ? `&token=${encodeURIComponent(currentToken)}` : '';
+                const url = `/api/balance?mode=${mode}${tokenQuery}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                renderResult('balanceResult', formatBalanceSummary(data), data, !data.success);
+            } catch (error) {
+                renderResult('balanceResult', null, { success: false, error: error.message }, true);
+            }
+        }
+
+        async function fetchRecommend() {
+            const mode = getMode();
+            showLoading('recResult');
+            try {
+                const symbols = document.getElementById('recSymbols').value;
+                const market = document.getElementById('recMarket').value;
+                const body = { symbols, market, mode };
+                const response = await fetch('/api/recommend', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                const data = await response.json();
+                renderResult('recResult', formatRecommendSummary(data), data, !data.success);
+            } catch (error) {
+                renderResult('recResult', null, { success: false, error: error.message }, true);
+            }
+        }
+
+        async function buildPortfolio() {
+            const mode = getMode();
+            showLoading('portResult');
+            try {
+                const market = document.getElementById('portMarket').value;
+                const top_n = parseInt(document.getElementById('portTopN').value) || 5;
+                const universe_limit = parseInt(document.getElementById('portUniLimit').value) || 200;
+                const body = { market, mode, top_n, alloc: 'equal', use_system: true, universe_limit };
+                const response = await fetch('/api/portfolio', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                const data = await response.json();
+                renderResult('portResult', formatPortfolioSummary(data), data, !data.success);
+            } catch (error) {
+                renderResult('portResult', null, { success: false, error: error.message }, true);
+            }
+        }
+    </script>
+</body>
+</html>

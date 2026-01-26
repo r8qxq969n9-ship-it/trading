@@ -1,0 +1,20 @@
+# 한국투자증권 Open Trading API 설정 파일
+# 실제 사용 시 이 파일을 kis_devlp.yaml로 복사하고 실제 값으로 채워주세요
+
+# 실전 환경 인증 정보
+my_app: "실전_appkey_여기에_입력"
+my_sec: "실전_appsecret_여기에_입력"
+my_acct_stock: "12345678"  # 계좌번호 앞 8자리
+my_prod: "01"  # 상품코드 2자리
+
+# 모의투자 환경 인증 정보
+paper_app: "모의_appkey_여기에_입력"
+paper_sec: "모의_appsecret_여기에_입력"
+my_paper_stock: "87654321"  # 모의투자 계좌번호 앞 8자리 (선택사항, 없으면 my_acct_stock 사용)
+
+# API 도메인
+prod: "https://openapi.koreainvestment.com"  # 실전 REST API 도메인
+vps: "https://openapivts.koreainvestment.com"  # 모의투자 REST API 도메인
+
+# User-Agent (한국투자증권 요구사항)
+my_agent: "MyTradingApp/1.0"
